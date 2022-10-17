@@ -10,7 +10,7 @@ Java_com_example_cppnativeapplication_MainActivity_getInternalPath(JNIEnv *env, 
     jobject obj_File = env->CallObjectMethod(activity, mid_getExtStorage);
     jclass cls_File = env->FindClass("java/io/File");
     jmethodID mid_getPath = env->GetMethodID(cls_File, "getPath", "()Ljava/lang/String;");
-    jstring obj_Path = (jstring) env->CallObjectMethod(obj_File, mid_getPath);
+    auto obj_Path = (jstring) env->CallObjectMethod(obj_File, mid_getPath);
     const char *path = env->GetStringUTFChars(obj_Path, nullptr);
 
     env->ReleaseStringUTFChars(obj_Path, path);
@@ -28,7 +28,6 @@ Java_com_example_cppnativeapplication_MainActivity_getInternalPath(JNIEnv *env, 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_cppnativeapplication_MainActivity_writeToFile(JNIEnv *env, jobject,
                                                                jstring path, jstring text) {
-
     const char *nativePath = env->GetStringUTFChars(path, nullptr);
     const char *textChar = env->GetStringUTFChars(text, nullptr);
     FILE *p;
@@ -40,18 +39,19 @@ Java_com_example_cppnativeapplication_MainActivity_writeToFile(JNIEnv *env, jobj
     fwrite(textChar, len, 1, p);
     fclose(p);
     return env->NewStringUTF("File written successfully!");
-
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_cppnativeapplication_MainActivity_readFile(JNIEnv *env, jobject,
-                                                            jstring path) {
+Java_com_example_cppnativeapplication_MainActivity_readFile(JNIEnv *env, jobject, jstring path) {
     const char *nativePath = env->GetStringUTFChars(path, nullptr);
-    char buffer[1000];
-    FILE *stream;
-    stream = fopen(nativePath, "r");
-    fread(&buffer, sizeof(char), 20, stream);
-    fclose(stream);
+    FILE *file = fopen(nativePath, "r");
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET); //Reset file pointer to start
+
+    char buffer[fileSize + 1];
+    fread(&buffer, sizeof(char), fileSize, file);
+    fclose(file);
     return env->NewStringUTF(buffer);
 }
 
